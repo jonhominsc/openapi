@@ -1,0 +1,574 @@
+openapi: 3.0.0
+info:
+  title: Secure Kernel API
+  version: 1.0.0
+  description: ユーザー情報を取得、更新および削除するためのAPI
+tags:
+  - name: ユーザー
+    description: ユーザーに関する操作
+  - name: タスク
+    description: タスクに関する操作
+paths:
+  /users/{userId}:
+    get:
+      tags:
+        - ユーザー
+      summary: ユーザー情報を取得
+      description: ユーザーIDを指定して、ユーザーのメールアドレスとユーザー名を取得します。
+      operationId: getUserById
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: 取得するユーザーのID
+          schema:
+            type: string
+      security:
+        - firebaseAuth: []
+      responses:
+        '200':
+          description: ユーザー情報の取得に成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: string
+                    example: 12345
+                  email:
+                    type: string
+                    example: user@example.com
+                  username:
+                    type: string
+                    example: john_doe
+        '400':
+          description: 無効なユーザーIDが提供されました
+        '401':
+          description: 認証情報が無効です
+        '404':
+          description: ユーザーが見つかりません
+    delete:
+      tags:
+        - ユーザー
+      summary: ユーザーを削除
+      description: ユーザーIDを指定して、ユーザーを削除します。
+      operationId: deleteUserById
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: 削除するユーザーのID
+          schema:
+            type: string
+      security:
+        - firebaseAuth: []
+      responses:
+        '204':
+          description: ユーザーの削除に成功
+        '400':
+          description: 無効なユーザーIDが提供されました
+        '401':
+          description: 認証情報が無効です
+        '404':
+          description: ユーザーが見つかりません
+    put:
+      tags:
+        - ユーザー
+      summary: ユーザー名を更新
+      description: ユーザーIDを指定して、ユーザー名を更新します。
+      operationId: updateUserById
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: 更新するユーザーのID
+          schema:
+            type: string
+      security:
+        - firebaseAuth: []
+      requestBody:
+        description: 更新するユーザー名を含むリクエストボディ
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: new_username
+      responses:
+        '200':
+          description: ユーザー名の更新に成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: string
+                    example: 12345
+                  username:
+                    type: string
+                    example: new_username
+        '400':
+          description: 無効なユーザーIDまたはユーザー名が提供されました
+        '401':
+          description: 認証情報が無効です
+        '404':
+          description: ユーザーが見つかりません
+  /users/{userId}/password:
+    put:
+      tags:
+        - ユーザー
+      summary: パスワードを更新
+      description: ユーザーIDを指定して、パスワードを更新します。
+      operationId: updateUserPassword
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: 更新するユーザーのID
+          schema:
+            type: string
+      security:
+        - firebaseAuth: []
+      requestBody:
+        description: 現在のパスワード、新しいパスワード、および新しいパスワード確認用を含むリクエストボディ
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                currentPassword:
+                  type: string
+                  example: current_password123
+                newPassword:
+                  type: string
+                  example: new_password123
+                confirmPassword:
+                  type: string
+                  example: new_password123
+      responses:
+        '200':
+          description: パスワードの更新に成功
+        '400':
+          description: 無効な入力またはパスワードの不一致
+        '401':
+          description: 認証情報が無効です
+        '404':
+          description: ユーザーが見つかりません
+  /tasks:
+    get:
+      tags:
+        - タスク
+      summary: タスクの一覧を取得
+      description: タスク名、タスク詳細、優先度でフィルタリングし、期限日でソートします。自分が作成したタスクのみ表示されます。
+      operationId: getTasks
+      security:
+        - firebaseAuth: []
+      parameters:
+        - name: taskName
+          in: query
+          description: 検索するタスク名
+          schema:
+            type: string
+        - name: taskDescription
+          in: query
+          description: 検索するタスク詳細
+          schema:
+            type: string
+        - name: priority
+          in: query
+          description: 検索する優先度
+          schema:
+            type: integer
+        - name: page
+          in: query
+          description: ページ番号 (デフォルトは1)
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: 1ページあたりの項目数 (デフォルトは20)
+          schema:
+            type: integer
+            default: 20
+        - name: sortBy
+          in: query
+          description: ソートするフィールド (期限日でのみソート可能)
+          schema:
+            type: string
+            enum: [dueDate]
+            default: dueDate
+        - name: sortOrder
+          in: query
+          description: ソート順序 (asc または desc)
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+      responses:
+        '200':
+          description: タスク一覧の取得に成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        taskId:
+                          type: string
+                          example: "12345"
+                        taskName:
+                          type: string
+                          example: "新しいタスク"
+                        taskDescription:
+                          type: string
+                          example: "このタスクの詳細な説明"
+                        assigneeId:
+                          type: string
+                          example: "12345"
+                        dueDate:
+                          type: string
+                          format: date
+                          example: "2023-12-31"
+                        priority:
+                          type: integer
+                          example: 1
+                        attachments:
+                          type: array
+                          items:
+                            type: string
+                            example: "document.pdf"
+                        createdAt:
+                          type: string
+                          format: date-time
+                          example: "2023-01-01T00:00:00Z"
+                        updatedAt:
+                          type: string
+                          format: date-time
+                          example: "2023-01-02T00:00:00Z"
+                        createdBy:
+                          type: string
+                          example: "12345"
+                        updatedBy:
+                          type: string
+                          example: "67890"
+                  page:
+                    type: integer
+                    example: 1
+                  totalPages:
+                    type: integer
+                    example: 5
+                  totalItems:
+                    type: integer
+                    example: 100
+        '400':
+          description: 無効な入力が提供されました
+        '401':
+          description: 認証情報が無効です
+    post:
+      tags:
+        - タスク
+      summary: 新しいタスクを作成
+      description: タスクを作成します。
+      operationId: createTask
+      security:
+        - firebaseAuth: []
+      requestBody:
+        description: 作成するタスクの詳細
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - taskName
+              properties:
+                taskName:
+                  type: string
+                  description: タスク名
+                  example: "新しいタスク"
+                taskDescription:
+                  type: string
+                  format: textarea
+                  description: タスク詳細
+                  example: "このタスクの詳細な説明"
+                assigneeId:
+                  type: string
+                  description: 担当者のID
+                  example: "12345"
+                dueDate:
+                  type: string
+                  format: date
+                  description: 対応期限 (yyyy-mm-dd)
+                  example: "2023-12-31"
+                priority:
+                  type: integer
+                  description: 優先度区分
+                  example: 1
+                attachments:
+                  type: array
+                  description: 添付ファイル
+                  items:
+                    type: string
+                    description: ファイル名
+                    example: "document.pdf"
+      responses:
+        '201':
+          description: タスクの作成に成功
+        '400':
+          description: 無効な入力が提供されました
+        '401':
+          description: 認証情報が無効です
+  /documents:
+    post:
+      tags:
+        - ドキュメント
+      summary: 新しいドキュメントを作成
+      description: ドキュメントを作成します。
+      operationId: createDocument
+      security:
+        - firebaseAuth: []
+      requestBody:
+        description: 作成するドキュメントの詳細
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - documentName
+              properties:
+                documentName:
+                  type: string
+                  description: ドキュメント名
+                  example: "新しいドキュメント"
+                assigneeId:
+                  type: string
+                  description: 担当者のID
+                  example: "12345"
+                status:
+                  type: integer
+                  description: ステータス
+                  example: 1
+                policyIds:
+                  type: array
+                  description: 紐づける管理策のIDリスト
+                  items:
+                    type: string
+                    description: 管理策ID
+                    example: "policy_123"
+                attachments:
+                  type: array
+                  description: 添付ファイル
+                  items:
+                    type: string
+                    description: ファイル名
+                    example: "document.pdf"
+                comments:
+                  type: string
+                  format: textarea
+                  description: コメント
+                  example: "このドキュメントの詳細なコメント"
+      responses:
+        '201':
+          description: ドキュメントの作成に成功
+        '400':
+          description: 無効な入力が提供されました
+        '401':
+          description: 認証情報が無効です
+    get:
+      tags:
+        - ドキュメント
+      summary: ドキュメントの一覧を取得
+      description: ドキュメント名でフィルタリングし、更新日時でソートします。
+      operationId: getDocuments
+      security:
+        - firebaseAuth: []
+      parameters:
+        - name: documentName
+          in: query
+          description: 検索するドキュメント名
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: ページ番号 (デフォルトは1)
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: 1ページあたりの項目数 (デフォルトは20)
+          schema:
+            type: integer
+            default: 20
+        - name: sortBy
+          in: query
+          description: ソートするフィールド (更新日時でのみソート可能)
+          schema:
+            type: string
+            enum: [updatedAt]
+            default: updatedAt
+        - name: sortOrder
+          in: query
+          description: ソート順序 (asc または desc)
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+      responses:
+        '200':
+          description: ドキュメント一覧の取得に成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  documents:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        documentName:
+                          type: string
+                          example: "ドキュメント1"
+                        targetStandard:
+                          type: string
+                          example: "ISO 27001"
+                        assignee:
+                          type: object
+                          properties:
+                            assigneeId:
+                              type: string
+                              example: "12345"
+                            roleId:
+                              type: string
+                              example: "role_123"
+                            roleName:
+                              type: string
+                              example: "管理者"
+                        status:
+                          type: integer
+                          example: 1
+                        relatedPolicies:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              policyId:
+                                type: string
+                                example: "policy_123"
+                              policyNo:
+                                type: string
+                                example: "1.1"
+                        updatedAt:
+                          type: string
+                          format: date-time
+                          example: "2023-01-02T00:00:00Z"
+                  page:
+                    type: integer
+                    example: 1
+                  totalPages:
+                    type: integer
+                    example: 5
+                  totalItems:
+                    type: integer
+                    example: 100
+        '400':
+          description: 無効な入力が提供されました
+        '401':
+          description: 認証情報が無効です
+  /goals:
+    post:
+      tags:
+        - 目標
+      summary: 新しい目標を作成
+      description: 目標を作成します。
+      operationId: createGoal
+      security:
+        - firebaseAuth: []
+      requestBody:
+        description: 作成する目標の詳細
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - goalName
+                - responsiblePersonId
+                - monitoringFrequency
+              properties:
+                goalName:
+                  type: string
+                  description: 目標名
+                  example: "新しい目標"
+                implementationDetails:
+                  type: string
+                  format: textarea
+                  description: 目標の実施事項
+                  example: "この目標の詳細な実施事項"
+                evaluationCriteria:
+                  type: string
+                  format: textarea
+                  description: 結果の評価事項
+                  example: "この目標の評価基準"
+                responsiblePersonId:
+                  type: string
+                  description: 責任者ID
+                  example: "responsible_123"
+                dueDate:
+                  type: string
+                  format: date
+                  description: 対応期限 (yyyymmdd)
+                  example: "20231231"
+                monitoringFrequency:
+                  type: integer
+                  description: 監視、測定頻度区分
+                  example: 1
+                monitoringStartDate:
+                  type: string
+                  format: date
+                  description: 監視、測定開始時期 (yyyymmdd)
+                  example: "20230101"
+                monitoringPersonnelId:
+                  type: string
+                  description: 管理、測定実施者ID
+                  example: "monitor_123"
+      responses:
+        '201':
+          description: 目標の作成に成功
+        '400':
+          description: 無効な入力が提供されました
+        '401':
+          description: 認証情報が無効です
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        userId:
+          type: string
+          example: 12345
+        email:
+          type: string
+          example: user@example.com
+        username:
+          type: string
+          example: john_doe
+  securitySchemes:
+    firebaseAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
